@@ -91,6 +91,26 @@ func (L *State) PushGoFunction(f LuaGoFunction) {
 	C.clua_pushgofunction(L.s, C.uint(fid))
 }
 
+// Sets a metamethod to execute a go function
+//
+// The code:
+//
+// 	L.LGetMetaTable(tableName)
+// 	L.SetMetaMethod(methodName, function)
+//
+// is the logical equivalent of:
+//
+// 	L.LGetMetaTable(tableName)
+// 	L.PushGoFunction(function)
+// 	L.SetField(-2, methodName)
+//
+// except this wouldn't work because pushing a go function results in user data not a cfunction
+func (L *State) SetMetaMethod(methodName string, f LuaGoFunction) {
+	L.PushGoFunction(f) // leaves Go function userdata on stack
+	C.clua_pushcallback(L.s) // wraps the userdata object with a closure making it into a function
+	L.SetField(-2, methodName)
+}
+
 // Pushes a Go struct onto the stack as user data.
 //
 // The user data will be rigged so that lua code can access and change to public members of simple types directly
